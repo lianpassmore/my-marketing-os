@@ -48,6 +48,13 @@ function pct(num: number, denom: number): string {
   return `${Math.round((num / denom) * 100)}%`;
 }
 
+// Open rate excludes the first 10 sends (untrackable)
+function openPct(opened: number, sent: number): string {
+  const trackable = sent - 10;
+  if (trackable <= 0) return '—';
+  return `${Math.round((opened / trackable) * 100)}%`;
+}
+
 function StatTile({ label, value, sub, icon, accent }: {
   label: string; value: string; sub?: string; icon: React.ReactNode; accent?: 'green' | 'red' | 'blue' | 'default';
 }) {
@@ -111,7 +118,7 @@ export default function ReadoutPage() {
   }, []);
 
   const hasSent = (totals?.sent || 0) > 0;
-  const openRate = pct(totals?.opened || 0, totals?.sent || 0);
+  const openRate = openPct(totals?.opened || 0, totals?.sent || 0);
   const clickRate = pct(totals?.clicked || 0, totals?.sent || 0);
   const deliverRate = pct(totals?.delivered || 0, totals?.sent || 0);
   const bounceRate = pct(totals?.bounced || 0, totals?.sent || 0);
@@ -149,7 +156,7 @@ export default function ReadoutPage() {
           {hasSent && (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-                <StatTile label="Open Rate" value={openRate} sub={`${totals?.opened} opens`} icon={<Mail size={18} />} accent="blue" />
+                <StatTile label="Open Rate" value={openRate} sub={`${totals?.opened} opens (first 10 excluded)`} icon={<Mail size={18} />} accent="blue" />
                 <StatTile label="Click Rate" value={clickRate} sub={`${totals?.clicked} clicks`} icon={<MousePointerClick size={18} />} accent="blue" />
                 <StatTile label="Deliverability" value={deliverRate} sub={`${totals?.delivered} delivered`} icon={<ShieldCheck size={18} />} accent="green" />
                 <StatTile label="Unsub Rate" value={unsubRate} sub={`${totals?.unsubscribed} unsubscribed`} icon={<UserMinus size={18} />} accent={((totals?.unsubscribed || 0) / Math.max(totals?.sent || 1, 1)) > 0.01 ? 'red' : 'default'} />
@@ -223,8 +230,8 @@ export default function ReadoutPage() {
                         <td className="px-6 py-4 text-content-slate">{s?.opened ?? '—'}</td>
                         <td className="px-6 py-4">
                           {s ? (
-                            <span className={`font-medium ${s.opened / Math.max(s.sent, 1) > 0.2 ? 'text-green-600' : 'text-content-ink'}`}>
-                              {pct(s.opened, s.sent)}
+                            <span className={`font-medium ${s.opened / Math.max(s.sent - 10, 1) > 0.2 ? 'text-green-600' : 'text-content-ink'}`}>
+                              {openPct(s.opened, s.sent)}
                             </span>
                           ) : '—'}
                         </td>
@@ -271,8 +278,8 @@ export default function ReadoutPage() {
                         <td className="px-6 py-4 text-content-slate">{s.sent}</td>
                         <td className="px-6 py-4 text-content-slate">{s.opened}</td>
                         <td className="px-6 py-4">
-                          <span className={`font-medium ${s.opened / Math.max(s.sent, 1) > 0.2 ? 'text-green-600' : 'text-content-ink'}`}>
-                            {pct(s.opened, s.sent)}
+                          <span className={`font-medium ${s.opened / Math.max(s.sent - 10, 1) > 0.2 ? 'text-green-600' : 'text-content-ink'}`}>
+                            {openPct(s.opened, s.sent)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-content-slate">{s.clicked}</td>
