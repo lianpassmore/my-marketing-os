@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabase } from '@/lib/supabase';
-import { replaceTokens, injectLinkTracking, htmlToPlainText, getNextSendAt, parseDaysFromLabel, appendUnsubscribeFooter, wrapInEmailTemplate } from '@/lib/tokens';
+import { replaceTokens, injectLinkTracking, injectProspectLinkTracking, injectOpenPixel, replaceOptInToken, htmlToPlainText, getNextSendAt, parseDaysFromLabel, appendUnsubscribeFooter, appendColdOutreachFooter, wrapInEmailTemplate } from '@/lib/tokens';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 const CRON_SECRET = process.env.CRON_SECRET;
 
-type Lead = {
+type Contact = {
   id: string;
-  name: string;
+  name?: string;
   email: string;
   company?: string;
   role?: string;
@@ -25,7 +25,8 @@ type FlowNode = {
 type FlowEnrollment = {
   id: string;
   flow_id: string;
-  lead_id: string;
+  lead_id: string | null;
+  prospect_id: string | null;
   current_step_index: number;
   next_send_at: string;
   status: string;
@@ -89,6 +90,8 @@ export async function GET(request: NextRequest) {
 }
 
 async function processEnrollment(enrollment: FlowEnrollment) {
+  const isProspect = !!enrollment.prospect_id;
+
   // Fetch the flow
   const { data: flow } = await supabase
     .from('flows')
@@ -101,14 +104,31 @@ async function processEnrollment(enrollment: FlowEnrollment) {
     return;
   }
 
-  // Fetch the lead
-  const { data: lead } = await supabase
-    .from('leads')
-    .select('*')
-    .eq('id', enrollment.lead_id)
-    .single() as { data: Lead | null };
+  // Fetch the contact (lead or prospect)
+  let contact: Contact | null = null;
 
-  if (!lead) {
+  if (isProspect) {
+    const { data } = await supabase
+      .from('prospects')
+      .select('*')
+      .eq('id', enrollment.prospect_id)
+      .single();
+    // Skip converted or do_not_contact prospects
+    if (!data || data.status === 'do_not_contact' || data.status === 'converted') {
+      await supabase.from('flow_enrollments').update({ status: 'completed' }).eq('id', enrollment.id);
+      return;
+    }
+    contact = data as Contact;
+  } else {
+    const { data } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('id', enrollment.lead_id)
+      .single();
+    contact = data as Contact | null;
+  }
+
+  if (!contact) {
     await supabase.from('flow_enrollments').update({ status: 'completed' }).eq('id', enrollment.id);
     return;
   }
@@ -130,28 +150,34 @@ async function processEnrollment(enrollment: FlowEnrollment) {
     const subject = node.data.subjectLine || node.data.subject || label.replace('📧', '').trim();
     const rawHtml = node.data.bodyHtml || node.data.body || `<p>Hi {{firstName}},</p><p>${label}</p>`;
 
+    const eventInsert = isProspect
+      ? { prospect_id: contact.id, flow_id: flow.id, step_index: stepIndex, subject, event_type: 'sent' }
+      : { lead_id: contact.id, flow_id: flow.id, step_index: stepIndex, subject, event_type: 'sent' };
+
     const { data: eventRow } = await supabase
       .from('email_events')
-      .insert([{
-        lead_id: lead.id,
-        flow_id: flow.id,
-        step_index: stepIndex,
-        subject,
-        event_type: 'sent',
-      }])
+      .insert([eventInsert])
       .select()
       .single();
 
     const emailEventId = eventRow?.id || 'unknown';
-    let bodyHtml = replaceTokens(rawHtml, lead);
+    let bodyHtml = replaceTokens(rawHtml, contact);
     bodyHtml = wrapInEmailTemplate(subject, bodyHtml);
-    bodyHtml = injectLinkTracking(bodyHtml, lead.id, emailEventId, BASE_URL);
-    bodyHtml = appendUnsubscribeFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?lid=${lead.id}`);
+
+    if (isProspect) {
+      bodyHtml = replaceOptInToken(bodyHtml, contact.id, BASE_URL);
+      bodyHtml = injectProspectLinkTracking(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = appendColdOutreachFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?pid=${contact.id}`);
+    } else {
+      bodyHtml = injectLinkTracking(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = injectOpenPixel(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = appendUnsubscribeFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?lid=${contact.id}`);
+    }
 
     const result = await resend.emails.send({
       from: 'Lian <lian@yourhq.co.nz>',
-      to: [lead.email],
-      subject: replaceTokens(subject, lead),
+      to: [contact.email],
+      subject: replaceTokens(subject, contact),
       html: bodyHtml,
       tags: [{ name: 'flow_id', value: flow.id }],
     });
@@ -160,32 +186,42 @@ async function processEnrollment(enrollment: FlowEnrollment) {
       await supabase.from('email_events').update({ resend_email_id: result.data.id }).eq('id', emailEventId);
     }
 
-    // Advance to next step
+    // After first send, mark prospect as contacted
+    if (isProspect) {
+      await supabase
+        .from('prospects')
+        .update({ status: 'contacted', last_contacted_at: new Date().toISOString() })
+        .eq('id', contact.id)
+        .eq('status', 'not_contacted');
+    }
+
     await advanceEnrollment(enrollment, nodes, stepIndex, flow);
 
   } else if (label.includes('🏷️') || label.toLowerCase().includes('tag')) {
-    // Tag node — add tag to lead
-    const tagMatch = label.match(/Add Tag[:\s]+(.+)/i) || label.match(/🏷️\s*(.+)/);
-    const tagToAdd = tagMatch ? tagMatch[1].trim() : 'Tagged';
-    const existingTags = lead.tags ? lead.tags.split(',').map(t => t.trim()) : [];
-    if (!existingTags.includes(tagToAdd)) {
-      await supabase.from('leads').update({ tags: [...existingTags, tagToAdd].join(', ') }).eq('id', lead.id);
+    // Tag node — only applies to leads (prospects use status instead)
+    if (!isProspect) {
+      const tagMatch = label.match(/Add Tag[:\s]+(.+)/i) || label.match(/🏷️\s*(.+)/);
+      const tagToAdd = tagMatch ? tagMatch[1].trim() : 'Tagged';
+      const existingTags = contact.tags ? contact.tags.split(',').map(t => t.trim()) : [];
+      if (!existingTags.includes(tagToAdd)) {
+        await supabase.from('leads').update({ tags: [...existingTags, tagToAdd].join(', ') }).eq('id', contact.id);
+      }
     }
     await advanceEnrollment(enrollment, nodes, stepIndex, flow);
 
   } else if (label.toLowerCase().includes('condition') || label.includes('if ')) {
-    // Condition node — check if lead opened previous email
+    // Condition node — check if contact opened previous email
     const conditionType = node.data.conditionType || 'opened';
+    const contactFilter = isProspect ? { prospect_id: contact.id } : { lead_id: contact.id };
     const { count } = await supabase
       .from('email_events')
       .select('*', { count: 'exact', head: true })
-      .eq('lead_id', lead.id)
+      .match(contactFilter)
       .eq('flow_id', flow.id)
       .eq('event_type', conditionType)
       .lt('step_index', stepIndex);
 
     const conditionMet = (count ?? 0) > 0;
-    // Route to next node: if met, go stepIndex+1; if not, skip to stepIndex+2
     const nextStep = conditionMet ? stepIndex + 1 : stepIndex + 2;
     const nextSendAt = getNextSendAt(0, flow.send_days, flow.send_time);
     await supabase.from('flow_enrollments').update({

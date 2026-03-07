@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabase } from '@/lib/supabase';
-import { replaceTokens, injectLinkTracking, htmlToPlainText, appendUnsubscribeFooter, wrapInEmailTemplate } from '@/lib/tokens';
+import {
+  replaceTokens,
+  injectLinkTracking,
+  injectProspectLinkTracking,
+  replaceOptInToken,
+  injectOpenPixel,
+  htmlToPlainText,
+  appendUnsubscribeFooter,
+  appendColdOutreachFooter,
+  wrapInEmailTemplate,
+} from '@/lib/tokens';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -20,22 +30,40 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ success: false, error: 'Broadcast not found' }, { status: 404 });
   }
 
-  // Fetch audience (optionally filtered by segment tags)
-  let query = supabase.from('leads').select('*');
-  // Note: tag filtering is done client-side since tags are stored as comma-separated string
-  const { data: leads, error: lErr } = await query;
+  const isProspectBroadcast = broadcast.audience_source === 'prospects';
 
-  if (lErr || !leads?.length) {
-    return NextResponse.json({ success: false, error: 'No contacts found' }, { status: 400 });
-  }
-
-  // Filter by segment tags if set
+  // Fetch audience
+  let audience: Record<string, string>[] = [];
   const segmentTags: string[] = broadcast.segment_tags || [];
-  const audience = segmentTags.length > 0
-    ? leads.filter(l => segmentTags.every((tag: string) =>
-        l.tags?.split(',').map((t: string) => t.trim()).includes(tag)
-      ))
-    : leads;
+
+  if (isProspectBroadcast) {
+    const { data, error } = await supabase
+      .from('prospects')
+      .select('*')
+      .not('status', 'in', '("converted","do_not_contact")');
+
+    if (error || !data?.length) {
+      return NextResponse.json({ success: false, error: 'No prospects found' }, { status: 400 });
+    }
+
+    audience = segmentTags.length > 0
+      ? data.filter(p => segmentTags.every((tag: string) =>
+          p.tags?.split(',').map((t: string) => t.trim()).includes(tag)
+        ))
+      : data;
+  } else {
+    const { data, error } = await supabase.from('leads').select('*');
+
+    if (error || !data?.length) {
+      return NextResponse.json({ success: false, error: 'No contacts found' }, { status: 400 });
+    }
+
+    audience = segmentTags.length > 0
+      ? data.filter(l => segmentTags.every((tag: string) =>
+          l.tags?.split(',').map((t: string) => t.trim()).includes(tag)
+        ))
+      : data;
+  }
 
   if (!audience.length) {
     return NextResponse.json({ success: false, error: 'No contacts match segment' }, { status: 400 });
@@ -49,52 +77,63 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const errors: string[] = [];
 
   for (let i = 0; i < audience.length; i++) {
-    const lead = audience[i];
+    const contact = audience[i];
     const isVariantB = hasAB && i >= halfIndex;
     const subject = isVariantB ? broadcast.ab_subject_b : broadcast.subject;
 
-    // Create email event record for tracking
+    // Create email event record
+    const eventInsert = isProspectBroadcast
+      ? { prospect_id: contact.id, broadcast_id: broadcastId, subject, event_type: 'sent' }
+      : { lead_id: contact.id, broadcast_id: broadcastId, subject, event_type: 'sent' };
+
     const { data: eventRow } = await supabase
       .from('email_events')
-      .insert([{
-        lead_id: lead.id,
-        broadcast_id: broadcastId,
-        subject,
-        event_type: 'sent',
-      }])
+      .insert([eventInsert])
       .select()
       .single();
 
     const emailEventId = eventRow?.id || 'unknown';
 
-    // Process HTML: replace tokens + wrap in template + inject link tracking + unsubscribe footer
-    let bodyHtml = replaceTokens(broadcast.body_html, lead);
+    let bodyHtml = replaceTokens(broadcast.body_html, contact);
     bodyHtml = wrapInEmailTemplate(subject, bodyHtml);
-    bodyHtml = injectLinkTracking(bodyHtml, lead.id, emailEventId, BASE_URL);
-    bodyHtml = appendUnsubscribeFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?lid=${lead.id}`);
+
+    if (isProspectBroadcast) {
+      bodyHtml = replaceOptInToken(bodyHtml, contact.id, BASE_URL);
+      bodyHtml = injectProspectLinkTracking(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = appendColdOutreachFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?pid=${contact.id}`);
+    } else {
+      bodyHtml = injectLinkTracking(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = injectOpenPixel(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = appendUnsubscribeFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?lid=${contact.id}`);
+    }
 
     try {
       const result = await resend.emails.send({
         from: 'Lian <lian@yourhq.co.nz>',
-        to: [lead.email],
+        to: [contact.email],
         subject,
         ...(broadcast.is_plain_text
-          ? { text: replaceTokens(broadcast.body_text || htmlToPlainText(broadcast.body_html), lead) }
+          ? { text: replaceTokens(broadcast.body_text || htmlToPlainText(broadcast.body_html), contact) }
           : { html: bodyHtml }),
         tags: [{ name: 'broadcast_id', value: broadcastId }],
       });
 
-      // Update event with Resend email ID
       if (result.data?.id) {
+        await supabase.from('email_events').update({ resend_email_id: result.data.id }).eq('id', emailEventId);
+      }
+
+      // Mark prospect as contacted
+      if (isProspectBroadcast) {
         await supabase
-          .from('email_events')
-          .update({ resend_email_id: result.data.id })
-          .eq('id', emailEventId);
+          .from('prospects')
+          .update({ status: 'contacted', last_contacted_at: new Date().toISOString() })
+          .eq('id', contact.id)
+          .eq('status', 'not_contacted');
       }
 
       sentCount++;
     } catch (err) {
-      errors.push(`${lead.email}: ${err}`);
+      errors.push(`${contact.email}: ${err}`);
     }
   }
 

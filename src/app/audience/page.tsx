@@ -50,6 +50,22 @@ function AddContactModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
       tags: autoTags.length ? autoTags.join(', ') : null,
     };
 
+    // Check if this email is already a prospect — if so, convert them instead
+    const { data: existingProspect } = await supabase
+      .from('prospects')
+      .select('id, status')
+      .eq('email', payload.email)
+      .maybeSingle();
+
+    if (existingProspect && existingProspect.status !== 'converted') {
+      const convRes = await fetch(`/api/prospects/${existingProspect.id}/convert`, { method: 'POST' });
+      const convJson = await convRes.json();
+      setIsSubmitting(false);
+      if (convJson.success) { onSaved(convJson.lead as Lead); return; }
+      setError(convJson.error || 'Failed to convert prospect to lead.');
+      return;
+    }
+
     const { data, error: supaErr } = await supabase.from('leads').insert([payload]).select().single();
     setIsSubmitting(false);
 
@@ -159,21 +175,46 @@ function ImportCSVModal({ onClose, onSaved }: { onClose: () => void; onSaved: (l
     setIsSubmitting(true);
     setError('');
 
-    const payload = rows.map(r => ({
-      name: r['name'] || r['full name'] || 'Unknown',
-      email: r['email'] || r['email address'] || '',
-      phone: r['phone'] || r['phone number'] || null,
-      company: r['company'] || null,
-      role: r['role'] || r['job title'] || null,
-      source: r['source'] || 'CSV Import',
-      tags: r['tags'] || null,
-    })).filter(r => r.email);
+    const rows_with_email = rows.filter(r => r['email'] || r['email address']);
 
-    const { data, error: supaErr } = await supabase.from('leads').insert(payload).select();
-    setIsSubmitting(false);
+    // For any row whose email is already a prospect, convert them first
+    const convertedLeads: Lead[] = [];
+    const toInsert = [];
 
-    if (supaErr) { setError(supaErr.message); return; }
-    onSaved((data as Lead[]) || []);
+    for (const r of rows_with_email) {
+      const email = (r['email'] || r['email address']).trim().toLowerCase();
+      const { data: existingProspect } = await supabase
+        .from('prospects')
+        .select('id, status')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingProspect && existingProspect.status !== 'converted') {
+        const convRes = await fetch(`/api/prospects/${existingProspect.id}/convert`, { method: 'POST' });
+        const convJson = await convRes.json();
+        if (convJson.success) { convertedLeads.push(convJson.lead as Lead); continue; }
+      }
+
+      toInsert.push({
+        name: r['name'] || r['full name'] || 'Unknown',
+        email,
+        phone: r['phone'] || r['phone number'] || null,
+        company: r['company'] || null,
+        role: r['role'] || r['job title'] || null,
+        source: r['source'] || 'CSV Import',
+        tags: r['tags'] || null,
+      });
+    }
+
+    if (toInsert.length > 0) {
+      const { data, error: supaErr } = await supabase.from('leads').insert(toInsert).select();
+      setIsSubmitting(false);
+      if (supaErr) { setError(supaErr.message); return; }
+      onSaved([...convertedLeads, ...((data as Lead[]) || [])]);
+    } else {
+      setIsSubmitting(false);
+      onSaved(convertedLeads);
+    }
   };
 
   const previewHeaders = rows.length ? Object.keys(rows[0]).slice(0, 5) : [];

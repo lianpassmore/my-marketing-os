@@ -44,6 +44,38 @@ export function injectLinkTracking(
   );
 }
 
+/** Same as injectLinkTracking but uses pid= for prospect emails */
+export function injectProspectLinkTracking(
+  html: string,
+  prospectId: string,
+  emailEventId: string,
+  baseUrl: string
+): string {
+  return html.replace(
+    /href="(https?:\/\/[^"]+)"/gi,
+    (_, url) => {
+      const tracked = `${baseUrl}/api/track?eid=${emailEventId}&pid=${prospectId}&url=${encodeURIComponent(url)}`;
+      return `href="${tracked}"`;
+    }
+  );
+}
+
+/** Replace {{optInUrl}} token with the prospect opt-in link */
+export function replaceOptInToken(content: string, prospectId: string, baseUrl: string): string {
+  const optInUrl = `${baseUrl}/api/opt-in?pid=${prospectId}`;
+  return content.replace(/\{\{optInUrl\}\}/gi, optInUrl);
+}
+
+/** Inject a 1x1 open tracking pixel before the closing body/div tag */
+export function injectOpenPixel(html: string, leadId: string, emailEventId: string, baseUrl: string): string {
+  const pixelUrl = `${baseUrl}/api/track?eid=${emailEventId}&lid=${leadId}`;
+  const pixel = `<img src="${pixelUrl}" width="1" height="1" style="display:none;" alt="" />`;
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${pixel}</body>`);
+  }
+  return html + pixel;
+}
+
 /** Append a CAN-SPAM/GDPR compliant unsubscribe footer to email HTML */
 export function appendUnsubscribeFooter(html: string, unsubscribeUrl: string): string {
   const footer = `
@@ -73,6 +105,23 @@ export function wrapInEmailTemplate(subject: string, bodyHtml: string): string {
   const normalized = normalizeBodyToHtml(bodyHtml);
   const styledBody = normalized.replace(/<p>/gi, '<p style="margin:0 0 16px 0;">');
   return `<div style="font-family:sans-serif;padding:40px;background:#F6F7FB;"><div style="background:white;padding:30px;border-radius:8px;max-width:600px;margin:0 auto;border:1px solid #E6EAF2;"><h2 style="color:#0F172A;margin-top:0;">${subject}</h2><div style="color:#334155;font-size:15px;line-height:1.7;">${styledBody}</div></div></div>`;
+}
+
+/** Cold outreach footer — no "opted in" language, includes opt-out link */
+export function appendColdOutreachFooter(html: string, optOutUrl: string): string {
+  const footer = `
+<div style="margin-top:40px;padding-top:24px;border-top:1px solid #E2E8F0;text-align:center;font-family:sans-serif;">
+  <p style="font-size:12px;color:#94A3B8;line-height:1.6;margin:0 0 8px;">
+    You're receiving this as part of a business outreach. This is not a marketing list.
+  </p>
+  <p style="font-size:12px;color:#94A3B8;margin:0;">
+    <a href="${optOutUrl}" style="color:#94A3B8;text-decoration:underline;">Don't want to hear from us? Click here.</a>
+  </p>
+</div>`;
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${footer}</body>`);
+  }
+  return html + footer;
 }
 
 /** Strip HTML tags and convert to plain text */

@@ -4,17 +4,21 @@ import Link from 'next/link';
 import { WelcomeHeader } from './_components/WelcomeHeader';
 
 export default async function Dashboard() {
-  const [leadsRes, leadsCountRes, broadcastsRes, eventsRes] = await Promise.all([
+  const [leadsRes, leadsCountRes, broadcastsRes, eventsRes, blueprintsRes, activeFlowsRes] = await Promise.all([
     supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(5),
     supabase.from('leads').select('*', { count: 'exact', head: true }),
     supabase.from('broadcasts').select('id, status').eq('status', 'sent'),
     supabase.from('email_events').select('event_type'),
+    supabase.from('blueprints').select('id', { count: 'exact', head: true }),
+    supabase.from('flows').select('id', { count: 'exact', head: true }).eq('status', 'active'),
   ]);
 
   const leads = leadsRes.data || [];
   const totalLeads = leadsCountRes.count || 0;
   const broadcastsSent = broadcastsRes.data?.length || 0;
   const events = eventsRes.data || [];
+  const hasBlueprints = (blueprintsRes.count || 0) > 0;
+  const hasActiveFlow = (activeFlowsRes.count || 0) > 0;
 
   const sentCount = events.filter(e => e.event_type === 'sent').length;
   const bouncedCount = events.filter(e => e.event_type === 'bounced').length;
@@ -36,13 +40,13 @@ export default async function Dashboard() {
         </Link>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <StatCard title="Total Audience" value={totalLeads.toString()} icon={<Users size={20} />} />
+        <StatCard title="Emails Sent" value={sentCount.toLocaleString()} icon={<Send size={20} />} trend={openRate !== null ? `${openRate}% open rate` : undefined} />
         <StatCard
-          title="Broadcasts Sent (all time)"
+          title="Broadcasts Sent"
           value={broadcastsSent.toString()}
           icon={<Send size={20} />}
-          trend={openRate !== null ? `${openRate}% avg open rate` : undefined}
         />
 
         <div className="bg-surface-paper p-6 rounded-xl border border-surface-mist shadow-sm relative overflow-hidden">
@@ -103,10 +107,10 @@ export default async function Dashboard() {
         <div className="bg-surface-paper rounded-xl border border-surface-mist shadow-sm p-6 h-fit">
           <h2 className="text-base font-semibold text-content-ink mb-6">Next Steps</h2>
           <div className="space-y-4">
-            <ActionItem title="Setup Sender Profile" desc="Verify your sending domain" done={false} />
-            <ActionItem title="Create a Blueprint" desc="Set up your Light & Shade templates" done={false} />
+            <ActionItem title="Setup Sender Profile" desc="Verify your sending domain" done={sentCount > 0} />
+            <ActionItem title="Create a Blueprint" desc="Set up your Light & Shade templates" done={hasBlueprints} />
             <ActionItem title="Import Contacts" desc="Upload your CSV or connect forms" done={totalLeads > 0} />
-            <ActionItem title="Activate a Flow" desc="Turn on your first drip sequence" done={false} />
+            <ActionItem title="Activate a Flow" desc="Turn on your first drip sequence" done={hasActiveFlow} />
             <ActionItem title="Send a Broadcast" desc="Fire your first signal" done={broadcastsSent > 0} />
           </div>
         </div>
