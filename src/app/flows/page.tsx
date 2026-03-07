@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Workflow, Plus, Zap, Clock, Play, Pause, Trash2, Loader2, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Workflow, Plus, Zap, Clock, Play, Pause, Trash2, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import Link from 'next/link';
 
 type Flow = {
@@ -15,6 +15,16 @@ type Flow = {
   created_at: string;
 };
 
+type Enrollment = {
+  id: string;
+  lead_id: string;
+  current_step_index: number;
+  next_send_at: string;
+  status: string;
+  created_at: string;
+  lead: { name: string; email: string } | null;
+};
+
 const statusColors = {
   draft: 'bg-surface-cloud text-content-slate border-surface-mist',
   active: 'bg-green-50 text-green-700 border-green-200',
@@ -24,6 +34,26 @@ const statusColors = {
 export default function FlowsPage() {
   const [flows, setFlows] = useState<Flow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [expandedFlowId, setExpandedFlowId] = useState<string | null>(null);
+  const [enrollments, setEnrollments] = useState<Record<string, Enrollment[]>>({});
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState<string | null>(null);
+
+  const toggleEnrollments = async (flowId: string) => {
+    if (expandedFlowId === flowId) {
+      setExpandedFlowId(null);
+      return;
+    }
+    setExpandedFlowId(flowId);
+    if (enrollments[flowId]) return;
+    setEnrollmentsLoading(flowId);
+    try {
+      const res = await fetch(`/api/flows/${flowId}/enrollments`);
+      const { data } = await res.json();
+      setEnrollments(prev => ({ ...prev, [flowId]: data || [] }));
+    } finally {
+      setEnrollmentsLoading(null);
+    }
+  };
 
   const fetchFlows = async () => {
     setIsLoading(true);
@@ -153,49 +183,109 @@ export default function FlowsPage() {
                   <th className="px-6 py-3 font-medium">Trigger</th>
                   <th className="px-6 py-3 font-medium">Schedule</th>
                   <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 font-medium">Enrolled</th>
                   <th className="px-6 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-mist">
                 {flows.map(flow => (
-                  <tr key={flow.id} className="hover:bg-surface-cloud transition-colors">
-                    <td className="px-6 py-4">
-                      <Link href={`/flows/new?id=${flow.id}`} className="font-medium text-content-ink hover:text-brand-storm transition-colors">
-                        {flow.name}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-content-slate">
-                      {flow.trigger_type === 'tag' ? `Tag: ${flow.trigger_tag || '—'}` :
-                       flow.trigger_type === 'new_contact' ? 'New Contact' :
-                       flow.trigger_type === 'post_purchase' ? 'Post-Purchase' : 'Manual'}
-                    </td>
-                    <td className="px-6 py-4 text-content-slate text-xs">
-                      {flow.send_days?.map(d => d.slice(0,3)).join(', ')} · {flow.send_time}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${statusColors[flow.status]}`}>
-                        {flow.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                  <>
+                    <tr key={flow.id} className="hover:bg-surface-cloud transition-colors">
+                      <td className="px-6 py-4">
+                        <Link href={`/flows/new?id=${flow.id}`} className="font-medium text-content-ink hover:text-brand-storm transition-colors">
+                          {flow.name}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4 text-content-slate">
+                        {flow.trigger_type === 'tag' ? `Tag: ${flow.trigger_tag || '—'}` :
+                         flow.trigger_type === 'new_contact' ? 'New Contact' :
+                         flow.trigger_type === 'post_purchase' ? 'Post-Purchase' : 'Manual'}
+                      </td>
+                      <td className="px-6 py-4 text-content-slate text-xs">
+                        {flow.send_days?.map(d => d.slice(0,3)).join(', ')} · {flow.send_time}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${statusColors[flow.status]}`}>
+                          {flow.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
                         <button
-                          onClick={() => toggleStatus(flow)}
-                          className="p-1.5 rounded hover:bg-surface-mist transition-colors text-content-slate hover:text-content-ink"
-                          title={flow.status === 'active' ? 'Pause flow' : 'Activate flow'}
+                          onClick={() => toggleEnrollments(flow.id)}
+                          className="flex items-center gap-1.5 text-xs text-content-slate hover:text-brand-storm transition-colors"
                         >
-                          {flow.status === 'active' ? <Pause size={15} /> : <Play size={15} />}
+                          <Users size={13} />
+                          <span>View</span>
+                          {expandedFlowId === flow.id ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                         </button>
-                        <button
-                          onClick={() => deleteFlow(flow.id)}
-                          className="p-1.5 rounded hover:bg-red-50 transition-colors text-content-slate hover:text-red-500"
-                          title="Delete flow"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleStatus(flow)}
+                            className="p-1.5 rounded hover:bg-surface-mist transition-colors text-content-slate hover:text-content-ink"
+                            title={flow.status === 'active' ? 'Pause flow' : 'Activate flow'}
+                          >
+                            {flow.status === 'active' ? <Pause size={15} /> : <Play size={15} />}
+                          </button>
+                          <button
+                            onClick={() => deleteFlow(flow.id)}
+                            className="p-1.5 rounded hover:bg-red-50 transition-colors text-content-slate hover:text-red-500"
+                            title="Delete flow"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedFlowId === flow.id && (
+                      <tr key={`${flow.id}-enrollments`}>
+                        <td colSpan={6} className="px-6 py-4 bg-surface-cloud border-b border-surface-mist">
+                          {enrollmentsLoading === flow.id ? (
+                            <div className="flex items-center gap-2 text-content-slate text-sm">
+                              <Loader2 size={14} className="animate-spin" />
+                              Loading enrollments...
+                            </div>
+                          ) : !enrollments[flow.id]?.length ? (
+                            <p className="text-sm text-content-slate">No one enrolled yet.</p>
+                          ) : (
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-xs text-content-slate uppercase tracking-wider">
+                                  <th className="text-left pb-2 font-medium">Name</th>
+                                  <th className="text-left pb-2 font-medium">Email</th>
+                                  <th className="text-left pb-2 font-medium">Step</th>
+                                  <th className="text-left pb-2 font-medium">Status</th>
+                                  <th className="text-left pb-2 font-medium">Enrolled</th>
+                                  <th className="text-left pb-2 font-medium">Next Send</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-surface-mist">
+                                {enrollments[flow.id].map(e => (
+                                  <tr key={e.id}>
+                                    <td className="py-2 pr-4 font-medium text-content-ink">{e.lead?.name || '—'}</td>
+                                    <td className="py-2 pr-4 text-content-slate">{e.lead?.email || '—'}</td>
+                                    <td className="py-2 pr-4 text-content-slate">Step {e.current_step_index + 1}</td>
+                                    <td className="py-2 pr-4">
+                                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                        e.status === 'active' ? 'bg-green-50 text-green-700' :
+                                        e.status === 'completed' ? 'bg-surface-mist text-content-slate' :
+                                        'bg-amber-50 text-amber-700'
+                                      }`}>{e.status}</span>
+                                    </td>
+                                    <td className="py-2 pr-4 text-content-slate text-xs">{new Date(e.created_at).toLocaleDateString()}</td>
+                                    <td className="py-2 text-content-slate text-xs">
+                                      {e.status === 'completed' ? '—' : new Date(e.next_send_at).toLocaleString()}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
