@@ -13,16 +13,14 @@ export async function GET(request: NextRequest) {
 
   // Record click event asynchronously (don't block the redirect)
   if (emailEventId && leadId) {
-    supabase
+    void supabase
       .from('email_events')
       .insert([{
         lead_id: leadId,
         event_type: 'clicked',
         url_clicked: url,
         metadata: { source_event_id: emailEventId },
-      }])
-      .then(() => {}) // fire and forget
-      .catch(() => {});
+      }]);
   }
 
   try {
