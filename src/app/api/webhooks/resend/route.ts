@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
   }
 
   const resendEmailId = data?.email_id as string;
-  const clickedUrl = (data as Record<string, unknown>)?.click?.link as string | undefined;
+  const clickData = (data as Record<string, unknown>)?.click as Record<string, unknown> | undefined;
+  const clickedUrl = clickData?.link as string | undefined;
 
   // Find the original sent event to get lead/flow/broadcast context
   const { data: sentEvent } = await supabase
