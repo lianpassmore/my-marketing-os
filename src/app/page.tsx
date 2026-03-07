@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { Activity, Users, Send, Plus, ArrowRight, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { WelcomeHeader } from './_components/WelcomeHeader';
 
 export default async function Dashboard() {
   const [leadsRes, leadsCountRes, broadcastsRes, eventsRes] = await Promise.all([
@@ -28,10 +29,7 @@ export default async function Dashboard() {
   return (
     <main className="p-8 max-w-6xl mx-auto w-full">
       <header className="flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-2xl font-semibold text-content-ink">Welcome back, Founder</h1>
-          <p className="text-content-slate mt-1 text-sm">Here is what is happening across your audience today.</p>
-        </div>
+        <WelcomeHeader />
         <Link href="/broadcasts/new" className="bg-brand-storm hover:bg-brand-indigo text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center shadow-sm">
           <Plus size={18} className="mr-2" />
           Create Broadcast

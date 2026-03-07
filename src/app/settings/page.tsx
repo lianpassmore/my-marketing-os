@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { Globe, CreditCard, Key, X, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Globe, CreditCard, Key, X, ExternalLink, CheckCircle, AlertCircle, User } from 'lucide-react';
 
 // ─── DNS Modal ──────────────────────────────────────────────────────────────
 
@@ -90,6 +90,22 @@ export default function SettingsPage() {
   const [showDNS, setShowDNS] = useState(false);
   const [billingClicked, setBillingClicked] = useState(false);
 
+  const [name, setName] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  useEffect(() => {
+    setName(localStorage.getItem('signal_name') ?? '');
+    setBusinessName(localStorage.getItem('signal_business_name') ?? '');
+  }, []);
+
+  const handleSaveProfile = () => {
+    localStorage.setItem('signal_name', name);
+    localStorage.setItem('signal_business_name', businessName);
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 3000);
+  };
+
   const handleBilling = () => {
     setBillingClicked(true);
     setTimeout(() => setBillingClicked(false), 3000);
@@ -103,6 +119,52 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-6">
+
+        {/* Profile */}
+        <Section
+          icon={<User size={18} />}
+          title="Profile"
+          description="Your name and business name used across Signal."
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-content-slate mb-1.5">Your Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Alex Johnson"
+                className="w-full px-3 py-2 text-sm border border-surface-mist rounded-lg bg-surface-cloud text-content-ink placeholder:text-content-slate/50 focus:outline-none focus:ring-2 focus:ring-brand-storm/30 focus:border-brand-storm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-content-slate mb-1.5">Business Name</label>
+              <input
+                type="text"
+                value={businessName}
+                onChange={e => setBusinessName(e.target.value)}
+                placeholder="e.g. Acme Co."
+                className="w-full px-3 py-2 text-sm border border-surface-mist rounded-lg bg-surface-cloud text-content-ink placeholder:text-content-slate/50 focus:outline-none focus:ring-2 focus:ring-brand-storm/30 focus:border-brand-storm"
+              />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              {profileSaved && (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle size={13} />
+                  Saved
+                </span>
+              )}
+              <div className="ml-auto">
+                <button
+                  onClick={handleSaveProfile}
+                  className="px-4 py-2 bg-brand-storm hover:bg-brand-indigo text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </Section>
 
         {/* Sending Domain */}
         <Section
