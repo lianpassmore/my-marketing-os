@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"next dev\")",
+      "Bash(node -e \"const m = require\\(''@usewaypoint/email-builder''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Skill(claude-developer-platform)",
+      "Skill(claude-developer-platform:*)",
+      "Bash(node -e \"const l = require\\(''/Users/lianpassmore/my-marketing-os/node_modules/lucide-react''\\); console.log\\(''Radio:'', typeof l.Radio, ''Plus:'', typeof l.Plus\\)\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(ls /Users/lianpassmore/my-marketing-os/.env*)"
+    ],
+    "additionalDirectories": [
+      "/Users/lianpassmore/my-marketing-os/src/app/api"
+    ]
+  }
+}

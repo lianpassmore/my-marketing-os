@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-storm: #2D6BFF;
+  --color-brand-indigo: #1E3A8A;
+  --color-brand-glow: #E8F0FF;
+  --color-surface-cloud: #F6F7FB;
+  --color-surface-paper: #FFFFFF;
+  --color-surface-mist: #E6EAF2;
+  --color-content-ink: #0F172A;
+  --color-content-slate: #64748B;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
