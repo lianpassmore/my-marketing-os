@@ -15,11 +15,17 @@ export function replaceTokens(content: string, lead: Lead): string {
 
   return content
     .replace(/\{\{firstName\}\}/gi, firstName)
+    .replace(/\{first_name\}/gi, firstName)
     .replace(/\{\{lastName\}\}/gi, lastName)
+    .replace(/\{last_name\}/gi, lastName)
     .replace(/\{\{fullName\}\}/gi, lead.name || 'Friend')
+    .replace(/\{full_name\}/gi, lead.name || 'Friend')
     .replace(/\{\{company\}\}/gi, lead.company || 'your business')
+    .replace(/\{company\}/gi, lead.company || 'your business')
     .replace(/\{\{role\}\}/gi, lead.role || 'your role')
-    .replace(/\{\{email\}\}/gi, lead.email || '');
+    .replace(/\{role\}/gi, lead.role || 'your role')
+    .replace(/\{\{email\}\}/gi, lead.email || '')
+    .replace(/\{email\}/gi, lead.email || '');
 }
 
 /** Wrap all href links in email HTML with a tracking redirect URL */
