@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Workflow, Plus, Zap, Clock, Play, Pause, Trash2, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight, Users, Mail } from 'lucide-react';
+import { Workflow, Plus, Zap, Clock, Play, Pause, Trash2, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight, Users, Mail, SendHorizonal } from 'lucide-react';
 import Link from 'next/link';
 
 type Flow = {
@@ -39,6 +39,7 @@ export default function FlowsPage() {
   const [expandedFlowId, setExpandedFlowId] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<Record<string, Enrollment[]>>({});
   const [enrollmentsLoading, setEnrollmentsLoading] = useState<string | null>(null);
+  const [sendingNow, setSendingNow] = useState<string | null>(null);
 
   const toggleEnrollments = async (flowId: string) => {
     if (expandedFlowId === flowId) {
@@ -78,6 +79,22 @@ export default function FlowsPage() {
       body: JSON.stringify({ status: newStatus }),
     });
     setFlows(prev => prev.map(f => f.id === flow.id ? { ...f, status: newStatus } : f));
+  };
+
+  const sendNow = async (flow: Flow) => {
+    if (!confirm(`Send the next pending emails in "${flow.name}" right now?`)) return;
+    setSendingNow(flow.id);
+    try {
+      await fetch(`/api/flows/${flow.id}/send-now`, { method: 'POST' });
+      // Refresh enrollment list if expanded
+      if (expandedFlowId === flow.id) {
+        const res = await fetch(`/api/flows/${flow.id}/enrollments`);
+        const { data } = await res.json();
+        setEnrollments(prev => ({ ...prev, [flow.id]: data || [] }));
+      }
+    } finally {
+      setSendingNow(null);
+    }
   };
 
   const deleteFlow = async (id: string) => {
@@ -240,6 +257,14 @@ export default function FlowsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => sendNow(flow)}
+                            disabled={sendingNow === flow.id || flow.status !== 'active'}
+                            className="p-1.5 rounded hover:bg-brand-glow transition-colors text-content-slate hover:text-brand-storm disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Send next emails now"
+                          >
+                            {sendingNow === flow.id ? <Loader2 size={15} className="animate-spin" /> : <SendHorizonal size={15} />}
+                          </button>
                           <button
                             onClick={() => toggleStatus(flow)}
                             className="p-1.5 rounded hover:bg-surface-mist transition-colors text-content-slate hover:text-content-ink"
