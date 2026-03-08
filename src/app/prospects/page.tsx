@@ -307,6 +307,10 @@ export default function ProspectsPage() {
   const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
   const [converting, setConverting] = useState<string | null>(null);
   const [convertSuccess, setConvertSuccess] = useState<string | null>(null);
+  const [showBulkEnroll, setShowBulkEnroll] = useState(false);
+  const [bulkFlowId, setBulkFlowId] = useState('');
+  const [bulkEnrolling, setBulkEnrolling] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ enrolled: number; skipped: number } | null>(null);
 
   const fetchProspects = async () => {
     setIsLoading(true);
@@ -352,6 +356,25 @@ export default function ProspectsPage() {
     }
   };
 
+  const handleBulkEnroll = async () => {
+    if (!bulkFlowId) return;
+    setBulkEnrolling(true);
+    setBulkResult(null);
+    let enrolled = 0, skipped = 0;
+    const eligible = displayed.filter(p => p.status !== 'converted' && p.status !== 'do_not_contact');
+    for (const p of eligible) {
+      const res = await fetch(`/api/flows/${bulkFlowId}/enroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: p.id }),
+      });
+      const { success } = await res.json();
+      if (success) enrolled++; else skipped++;
+    }
+    setBulkEnrolling(false);
+    setBulkResult({ enrolled, skipped });
+  };
+
   const displayed = prospects.filter(p => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || [p.email, p.name, p.company, p.city, p.type, p.tags].some(v => v?.toLowerCase().includes(q));
@@ -367,6 +390,11 @@ export default function ProspectsPage() {
           <p className="text-content-slate mt-1 text-sm">Cold outreach contacts. Not opted in — keep it honest.</p>
         </div>
         <div className="flex gap-3">
+          {flows.length > 0 && (
+            <button onClick={() => { setShowBulkEnroll(true); setBulkFlowId(flows[0].id); setBulkResult(null); }} className="bg-surface-paper border border-surface-mist text-content-ink hover:bg-surface-cloud px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center shadow-sm">
+              <Workflow size={16} className="mr-2 text-content-slate" /> Bulk Enroll
+            </button>
+          )}
           <button onClick={() => setShowImportModal(true)} className="bg-surface-paper border border-surface-mist text-content-ink hover:bg-surface-cloud px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center shadow-sm">
             <Upload size={16} className="mr-2 text-content-slate" /> Import CSV
           </button>
@@ -490,6 +518,46 @@ export default function ProspectsPage() {
       {/* Modals */}
       {showAddModal && <AddProspectModal onClose={() => setShowAddModal(false)} onSaved={p => { setProspects(prev => [p, ...prev]); setShowAddModal(false); }} />}
       {showImportModal && <ImportCSVModal onClose={() => setShowImportModal(false)} onSaved={ps => { setProspects(prev => [...ps, ...prev]); setShowImportModal(false); }} />}
+
+      {showBulkEnroll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-mist">
+              <h2 className="text-base font-semibold text-content-ink">Bulk Enroll in Flow</h2>
+              <button onClick={() => setShowBulkEnroll(false)} className="text-content-slate hover:text-content-ink"><X size={18} /></button>
+            </div>
+            <div className="p-6">
+              {bulkResult ? (
+                <div className="text-center py-4">
+                  <Check size={32} className="mx-auto text-green-500 mb-3" />
+                  <p className="text-content-ink font-medium">{bulkResult.enrolled} prospects enrolled</p>
+                  {bulkResult.skipped > 0 && <p className="text-content-slate text-sm mt-1">{bulkResult.skipped} skipped (already enrolled or ineligible)</p>}
+                  <button onClick={() => setShowBulkEnroll(false)} className="mt-5 px-5 py-2 bg-brand-storm text-white text-sm font-medium rounded-lg">Done</button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-content-slate mb-4">
+                    Enroll <strong>{displayed.filter(p => p.status !== 'converted' && p.status !== 'do_not_contact').length} prospects</strong> (currently visible) into:
+                  </p>
+                  <select value={bulkFlowId} onChange={e => setBulkFlowId(e.target.value)} className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm mb-4 bg-white">
+                    {flows.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                    Already-enrolled prospects will be skipped automatically.
+                  </p>
+                  <div className="flex justify-end gap-3">
+                    <button onClick={() => setShowBulkEnroll(false)} className="px-4 py-2 text-sm text-content-slate border border-surface-mist rounded-lg hover:bg-surface-cloud">Cancel</button>
+                    <button onClick={handleBulkEnroll} disabled={bulkEnrolling || !bulkFlowId} className="px-5 py-2 bg-brand-storm hover:bg-brand-indigo text-white text-sm font-medium rounded-lg flex items-center disabled:opacity-50">
+                      {bulkEnrolling ? <Loader2 size={15} className="animate-spin mr-2" /> : <Workflow size={15} className="mr-2" />}
+                      {bulkEnrolling ? 'Enrolling…' : 'Enroll All'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+}
 
       {/* Enroll in Flow Modal */}
       {enrollingProspect && (
