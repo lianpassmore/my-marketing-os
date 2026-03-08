@@ -6,7 +6,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: enrollments, error } = await supabase
     .from('flow_enrollments')
-    .select('id, lead_id, current_step_index, next_send_at, status, created_at')
+    .select('id, lead_id, prospect_id, current_step_index, next_send_at, status, created_at')
     .eq('flow_id', flowId)
     .order('created_at', { ascending: false });
 
@@ -14,17 +14,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   if (!enrollments?.length) return NextResponse.json({ success: true, data: [] });
 
-  const leadIds = enrollments.map(e => e.lead_id);
-  const { data: leads } = await supabase
-    .from('leads')
-    .select('id, name, email')
-    .in('id', leadIds);
+  const leadIds = enrollments.map(e => e.lead_id).filter(Boolean);
+  const prospectIds = enrollments.map(e => e.prospect_id).filter(Boolean);
+
+  const [{ data: leads }, { data: prospects }] = await Promise.all([
+    leadIds.length
+      ? supabase.from('leads').select('id, name, email').in('id', leadIds)
+      : Promise.resolve({ data: [] }),
+    prospectIds.length
+      ? supabase.from('prospects').select('id, name, email, company').in('id', prospectIds)
+      : Promise.resolve({ data: [] }),
+  ]);
 
   const leadsMap = Object.fromEntries((leads || []).map(l => [l.id, l]));
+  const prospectsMap = Object.fromEntries((prospects || []).map(p => [p.id, p]));
 
   const data = enrollments.map(e => ({
     ...e,
-    lead: leadsMap[e.lead_id] || null,
+    lead: e.lead_id ? (leadsMap[e.lead_id] || null) : null,
+    prospect: e.prospect_id ? (prospectsMap[e.prospect_id] || null) : null,
   }));
 
   return NextResponse.json({ success: true, data });

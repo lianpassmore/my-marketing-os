@@ -17,12 +17,14 @@ type Flow = {
 
 type Enrollment = {
   id: string;
-  lead_id: string;
+  lead_id: string | null;
+  prospect_id: string | null;
   current_step_index: number;
   next_send_at: string;
   status: string;
   created_at: string;
   lead: { name: string; email: string } | null;
+  prospect: { name: string; email: string; company?: string } | null;
 };
 
 const statusColors = {
@@ -280,8 +282,8 @@ export default function FlowsPage() {
                               <tbody className="divide-y divide-surface-mist">
                                 {enrollments[flow.id].map(e => (
                                   <tr key={e.id}>
-                                    <td className="py-2 pr-4 font-medium text-content-ink">{e.lead?.name || '—'}</td>
-                                    <td className="py-2 pr-4 text-content-slate">{e.lead?.email || '—'}</td>
+                                    <td className="py-2 pr-4 font-medium text-content-ink">{e.lead?.name || e.prospect?.company || e.prospect?.name || '—'}</td>
+                                    <td className="py-2 pr-4 text-content-slate">{e.lead?.email || e.prospect?.email || '—'}</td>
                                     <td className="py-2 pr-4 text-content-slate">Step {e.current_step_index + 1}</td>
                                     <td className="py-2 pr-4">
                                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
