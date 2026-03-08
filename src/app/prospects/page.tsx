@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Upload, UserPlus, X, Loader2, Check, Workflow, ArrowRightCircle } from 'lucide-react';
+import { Search, Upload, UserPlus, X, Loader2, Check, Workflow, ArrowRightCircle, Ban } from 'lucide-react';
 
 type Prospect = {
   id: string;
@@ -307,6 +307,7 @@ export default function ProspectsPage() {
   const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
   const [converting, setConverting] = useState<string | null>(null);
   const [convertSuccess, setConvertSuccess] = useState<string | null>(null);
+  const [declining, setDeclining] = useState<string | null>(null);
   const [showBulkEnroll, setShowBulkEnroll] = useState(false);
   const [bulkFlowId, setBulkFlowId] = useState('');
   const [bulkEnrolling, setBulkEnrolling] = useState(false);
@@ -353,6 +354,20 @@ export default function ProspectsPage() {
       setConvertSuccess(prospect.name || prospect.email);
       setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, status: 'converted' } : p));
       setTimeout(() => setConvertSuccess(null), 3000);
+    }
+  };
+
+  const handleDecline = async (prospect: Prospect) => {
+    setDeclining(prospect.id);
+    const res = await fetch(`/api/prospects/${prospect.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'do_not_contact' }),
+    });
+    const json = await res.json();
+    setDeclining(null);
+    if (json.success) {
+      setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, status: 'do_not_contact' } : p));
     }
   };
 
@@ -486,6 +501,15 @@ export default function ProspectsPage() {
                         >
                           {converting === prospect.id ? <Loader2 size={13} className="animate-spin" /> : <ArrowRightCircle size={13} />}
                           Convert
+                        </button>
+                        <button
+                          onClick={() => handleDecline(prospect)}
+                          disabled={declining === prospect.id}
+                          className="flex items-center gap-1 text-xs text-content-slate hover:text-red-500 transition-colors disabled:opacity-50"
+                          title="Mark as declined / do not contact"
+                        >
+                          {declining === prospect.id ? <Loader2 size={13} className="animate-spin" /> : <Ban size={13} />}
+                          Decline
                         </button>
                       </div>
                     )}
