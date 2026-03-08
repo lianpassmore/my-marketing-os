@@ -91,7 +91,7 @@ export function appendUnsubscribeFooter(html: string, unsubscribeUrl: string): s
   const footer = `
 <div style="margin-top:40px;padding-top:24px;border-top:1px solid #E2E8F0;text-align:center;font-family:sans-serif;">
   <p style="font-size:12px;color:#94A3B8;line-height:1.6;margin:0 0 8px;">
-    You're receiving this because you opted in to updates from Signal by DreamStorm.
+    You're receiving this because you opted in to updates from YourHQ.
   </p>
   <p style="font-size:12px;color:#94A3B8;margin:0;">
     <a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:underline;">Unsubscribe</a>
