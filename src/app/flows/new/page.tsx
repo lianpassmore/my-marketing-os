@@ -360,6 +360,103 @@ function generateCSVTemplate(nodes: Node[]): string {
   return [header, ...dataRows].join('\n');
 }
 
+function buildYourHQNodes(): Node[] {
+  return [
+    { id: 'trigger',      position: { x: 450, y: 0    }, data: { label: '⚡ Trigger: Manual / CSV Import' }, style: nodeStyles.trigger },
+    { id: 'email-1',      position: { x: 450, y: 130  }, data: {
+      label: '📧 Email 1: Initial Outreach (Day 1)',
+      subject: 'your google reviews vs your website',
+      preview: 'You\'ve done the hard work. But is anyone finding you online?',
+      body: `Hey,\n\nSaw {{Company Name}} on Google while doing some research on {{City}} auto businesses. You've got {{Reviews}} reviews — that's solid.\n\nBut when I clicked through, there's no website link. Or it goes to a Facebook page that hasn't been updated in months.\n\nHere's the thing: those {{Reviews}} reviews are doing heavy lifting. But every time someone's ready to book and can't find a proper website, you're handing jobs to whoever shows up online instead.\n\nI run YourHQ — we build professional websites for tradies in 5 days. No Wix. No homework. Just one 15-minute phone call and we handle the rest.\n\nNot pitching you yet. Just planting a seed. If sorting your website's on the radar for 2026, keen to have a quick chat.\n\nCheers,\nLian\nYourHQ\n022 172 5793`,
+    }, style: nodeStyles.email },
+    { id: 'wait-1',       position: { x: 450, y: 310  }, data: { label: '⏳ Wait 3 Days' }, style: nodeStyles.delay },
+    { id: 'condition-1',  position: { x: 450, y: 440  }, data: { label: '🔀 Opened Email 1? → Yes / No' }, style: nodeStyles.condition },
+
+    // — Opened branch (Left) ————————————————————————————
+    { id: 'email-2a',     position: { x: 100, y: 600  }, data: {
+      label: '📧 Email 2A: Engaged Follow-Up (Day 4)',
+      subject: 'couple things i should\'ve mentioned',
+      preview: 'We\'re not an agency. And you do literally nothing.',
+      body: `Hey,\n\nQuick follow-up on my email earlier this week about {{Company Name}}'s website.\n\nA couple things I probably should've mentioned:\n\n**One:** We're not an agency. I'm Kiwi, based in Whangārei, and I built YourHQ specifically for tradies who are sick of being told they need to "learn Wix."\n\n**Two:** You literally do nothing. We have an AI phone call that asks you about your business — takes 15 minutes. We pull photos from your Facebook, scrape your {{Reviews}} Google reviews, and build the site. Zero homework.\n\n**Three:** We don't ghost. Most agencies build your site and disappear. We stay on as caretakers. Forever. Updates, changes, maintenance — all included.\n\nIf you're curious what this actually looks like, here's a site we built for a commercial builder in Whangārei: https://yourhq.co.nz/demo\n\nWorth a 5-minute chat? I can get Nic (our sales partner) to call you next week at smoko if that works.\n\nCheers,\nLian`,
+    }, style: nodeStyles.email },
+    { id: 'wait-2a',      position: { x: 100, y: 780  }, data: { label: '⏳ Wait 4 Days' }, style: nodeStyles.delay },
+    { id: 'condition-2a', position: { x: 100, y: 910  }, data: { label: '🔀 Opened Email 2A? → Yes / No' }, style: nodeStyles.condition },
+    { id: 'email-3a',     position: { x: 100, y: 1070 }, data: {
+      label: '📧 Email 3A: Social Proof (Day 8)',
+      subject: 'what reuben said',
+      preview: 'This is the vibe for {{Company Name}} too.',
+      body: `Hey,\n\nStill on the fence? I get it.\n\nHere's what Reuben (Johnson & Sons, commercial builder) said after we built his site:\n\n"Building a website was my barrier to market. You helped me fulfill a dream. It's not just a website — it's a digital handshake that matches the quality of my work."\n\nThat's the vibe for {{Company Name}} too. Not a flashy corporate site. Not a half-done Wix job. A professional digital home that actually looks like the business you've built.\n\nWe've got 26 Founding Member spots at 50% off setup — locked-in pricing for life. Already taken 3. Once they're gone, full price.\n\nIf you want one of those spots, Nic will call you this week. Just reply "yeah" and I'll pass your number to her.\n\nCheers,\nLian`,
+    }, style: nodeStyles.email },
+    { id: 'wait-3a',      position: { x: 100, y: 1250 }, data: { label: '⏳ Wait 6 Days' }, style: nodeStyles.delay },
+    { id: 'condition-3a', position: { x: 100, y: 1380 }, data: { label: '🔀 Opened 3A (no reply)? → Yes / No' }, style: nodeStyles.condition },
+    { id: 'email-4a',     position: { x: 100, y: 1540 }, data: {
+      label: '📧 Email 4A: Closing the Books (Day 14)',
+      subject: 'closing the books',
+      preview: 'Last one — 23 Founding Member spots left.',
+      body: `Hey,\n\nClosing the books on outreach for the week, so this is the last you'll hear from me.\n\nI reached out because you've clearly built something solid — {{Reviews}} Google reviews prove it. But every day you don't have a professional website, you're invisible to people who don't already know you.\n\nWe're down to 23 Founding Member spots. Once we hit 26, this offer's gone.\n\nIf you want one, reply to this email or text me: 022 172 5793.\n\nIf not, all good. Keep doing what you're doing — and best of luck with the business.\n\nCheers,\nLian\nYourHQ`,
+    }, style: nodeStyles.email },
+
+    // — Not opened branch (Right) ——————————————————————
+    { id: 'email-2b',     position: { x: 800, y: 600  }, data: {
+      label: '📧 Email 2B: Re-Engagement (Day 4)',
+      subject: 'google is expensive advertising',
+      preview: 'Every search is traffic you\'re not getting.',
+      body: `Hey,\n\nQuick thought.\n\nIf someone in {{City}} Googles "{{Type}} near me" and you don't show up — you're basically paying for advertising you're not getting.\n\nYou've got {{Reviews}} Google reviews. That's proof you do good work. But without a website, every month is free Google traffic you're leaving on the table.\n\nI run YourHQ. We build professional websites for tradies in 5 days — no tech headaches, no homework. One phone call. That's it.\n\nNot trying to sell you anything today. Just planting a seed. If you're keen to stop handing Google traffic to your competitors, let's chat.\n\nCheers,\nLian\nYourHQ\n022 172 5793`,
+    }, style: nodeStyles.email },
+    { id: 'wait-2b',      position: { x: 800, y: 780  }, data: { label: '⏳ Wait 4 Days' }, style: nodeStyles.delay },
+    { id: 'condition-2b', position: { x: 800, y: 910  }, data: { label: '🔀 Opened Email 2B? → Yes / No' }, style: nodeStyles.condition },
+    { id: 'email-3b',     position: { x: 650, y: 1070 }, data: {
+      label: '📧 Email 3B: Last Shot (Day 8)',
+      subject: 'last email, promise',
+      preview: 'One phone call. 15 minutes. Website live in 5 days.',
+      body: `Hey,\n\nLast email from me, promise.\n\nHere's the reality: I'm not chasing you. You're busy. I get it.\n\nBut if you've got "sort the website" sitting on your mental to-do list for the last 6 months, here's your out:\n\nOne phone call. 15 minutes. We handle everything else. Website live in 5 days. We stay on forever as caretakers.\n\nNo Wix. No DIY. No learning curves.\n\nWe've got 26 Founding Member spots at 50% off. When they're gone, full price kicks in.\n\nIf you want one, reply to this and I'll get Nic to call you.\n\nIf not, no stress — I'll stop filling your inbox.\n\nCheers,\nLian`,
+    }, style: nodeStyles.email },
+    { id: 'wait-3b',      position: { x: 650, y: 1250 }, data: { label: '⏳ Wait 6 Days' }, style: nodeStyles.delay },
+    { id: 'email-4b-sent',position: { x: 650, y: 1380 }, data: {
+      label: '📧 Email 4B: Archive (Day 14)',
+      subject: 'unsubscribing you',
+      preview: 'No stress — all good.',
+      body: `Hey,\n\nHaven't heard from you, so I'm taking you off my outreach list.\n\nIf you ever decide to sort your website, we're here: yourhq.co.nz\n\nAll good either way.\n\nCheers,\nLian`,
+    }, style: nodeStyles.email },
+    { id: 'email-4b-skip', position: { x: 950, y: 1070 }, data: {
+      label: '📧 Email 4B: Archive (Day 14)',
+      subject: 'unsubscribing you',
+      preview: 'No stress — all good.',
+      body: `Hey,\n\nHaven't heard from you, so I'm taking you off my outreach list.\n\nIf you ever decide to sort your website, we're here: yourhq.co.nz\n\nAll good either way.\n\nCheers,\nLian`,
+    }, style: nodeStyles.email },
+  ];
+}
+
+function buildYourHQEdges(): Edge[] {
+  return [
+    { id: 'e1',  source: 'trigger',      target: 'email-1',      animated: true, style: { stroke: '#2D6BFF', strokeWidth: 2 } },
+    { id: 'e2',  source: 'email-1',      target: 'wait-1',                       style: { stroke: '#64748B', strokeWidth: 2 } },
+    { id: 'e3',  source: 'wait-1',       target: 'condition-1',  animated: true, style: { stroke: '#7C3AED', strokeWidth: 2 } },
+
+    // Condition 1 → 2A / 2B
+    { id: 'e4a', source: 'condition-1',  target: 'email-2a',     animated: true, label: 'Yes (Opened)',     style: { stroke: '#2D6BFF', strokeWidth: 2 } },
+    { id: 'e4b', source: 'condition-1',  target: 'email-2b',     animated: true, label: 'No (Not Opened)', style: { stroke: '#64748B', strokeWidth: 2 } },
+
+    // 2A branch
+    { id: 'e5a', source: 'email-2a',     target: 'wait-2a',                      style: { stroke: '#64748B', strokeWidth: 2 } },
+    { id: 'e6a', source: 'wait-2a',      target: 'condition-2a', animated: true, style: { stroke: '#7C3AED', strokeWidth: 2 } },
+    { id: 'e7a', source: 'condition-2a', target: 'email-3a',     animated: true, label: 'Yes (Opened)',     style: { stroke: '#2D6BFF', strokeWidth: 2 } },
+    { id: 'e8a', source: 'email-3a',     target: 'wait-3a',                      style: { stroke: '#64748B', strokeWidth: 2 } },
+    { id: 'e9a', source: 'wait-3a',      target: 'condition-3a', animated: true, style: { stroke: '#7C3AED', strokeWidth: 2 } },
+    { id: 'e10', source: 'condition-3a', target: 'email-4a',     animated: true, label: 'Yes (Opened)',     style: { stroke: '#2D6BFF', strokeWidth: 2 } },
+
+    // 2B branch
+    { id: 'e5b', source: 'email-2b',     target: 'wait-2b',                      style: { stroke: '#64748B', strokeWidth: 2 } },
+    { id: 'e6b', source: 'wait-2b',      target: 'condition-2b', animated: true, style: { stroke: '#7C3AED', strokeWidth: 2 } },
+    { id: 'e7b', source: 'condition-2b', target: 'email-3b',     animated: true, label: 'Yes (Opened)',     style: { stroke: '#2D6BFF', strokeWidth: 2 } },
+    { id: 'e7c', source: 'condition-2b', target: 'email-4b-skip',animated: true, label: 'No (Not Opened)', style: { stroke: '#64748B', strokeWidth: 2 } },
+
+    // 3B → 4B
+    { id: 'e8b', source: 'email-3b',     target: 'wait-3b',                      style: { stroke: '#64748B', strokeWidth: 2 } },
+    { id: 'e9b', source: 'wait-3b',      target: 'email-4b-sent',animated: true, style: { stroke: '#2D6BFF', strokeWidth: 2 } },
+  ];
+}
+
 function BulkImportModal({ nodes, onApply, onClose }: {
   nodes: Node[];
   onApply: (updates: Record<string, { subject: string; preview: string; body: string }>) => void;
@@ -529,17 +626,25 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges, onNodeClick }: {
 function FlowBuilderContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const isNurture = searchParams.get('template') === 'nurture';
+  const template = searchParams.get('template');
+  const isNurture = template === 'nurture';
+  const isYourHQ = template === 'yourhq';
   const editId = searchParams.get('id');
 
-  const[nodes, setNodes] = useState<Node[]>(() => isNurture ? buildNurtureNodes() : initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(() => isNurture ? buildNurtureEdges() : initialEdges);
-  
+  const[nodes, setNodes] = useState<Node[]>(() =>
+    isNurture ? buildNurtureNodes() : isYourHQ ? buildYourHQNodes() : initialNodes
+  );
+  const [edges, setEdges] = useState<Edge[]>(() =>
+    isNurture ? buildNurtureEdges() : isYourHQ ? buildYourHQEdges() : initialEdges
+  );
+
   // Track which node is selected to show the right panel
   const[selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const [flowName, setFlowName] = useState(isNurture ? 'Magic Lantern Nurture Flow' : 'New Welcome Sequence');
-  const[triggerType, setTriggerType] = useState('new_contact');
+  const [flowName, setFlowName] = useState(
+    isNurture ? 'Magic Lantern Nurture Flow' : isYourHQ ? 'YourHQ Cold Outreach' : 'New Welcome Sequence'
+  );
+  const[triggerType, setTriggerType] = useState(isYourHQ ? 'manual' : 'new_contact');
   const [triggerTag, setTriggerTag] = useState('');
   const [sendDays, setSendDays] = useState<string[]>(['tuesday', 'thursday']);
   const[sendTime, setSendTime] = useState('10:00');

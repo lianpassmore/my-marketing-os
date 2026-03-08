@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Workflow, Plus, Zap, Clock, Play, Pause, Trash2, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight, Users } from 'lucide-react';
+import { Workflow, Plus, Zap, Clock, Play, Pause, Trash2, Loader2, RefreshCw, ShieldAlert, ChevronDown, ChevronRight, Users, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 type Flow = {
@@ -137,6 +137,23 @@ export default function FlowsPage() {
             <h3 className="font-semibold text-content-ink mb-1.5 group-hover:text-amber-600 transition-colors">Re-engagement Win-Back</h3>
             <p className="text-sm text-content-slate leading-relaxed mb-3">Auto-triggers for subscribers inactive 30+ days. Segments out the truly cold leads.</p>
             <span className="text-xs font-medium text-amber-600 group-hover:underline">Open in Flow Builder →</span>
+          </Link>
+
+          <Link href="/flows/new?template=yourhq" className="group bg-surface-paper border border-surface-mist rounded-xl p-5 hover:border-orange-400 hover:shadow-md transition-all">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                <Mail className="text-orange-600" size={20} />
+              </div>
+              <div className="flex gap-2">
+                <span className="text-xs font-medium px-2 py-1 bg-surface-cloud rounded-full text-content-slate border border-surface-mist flex items-center">
+                  <Clock size={10} className="mr-1" />7 emails
+                </span>
+                <span className="text-xs font-medium px-2 py-1 bg-surface-cloud rounded-full text-content-slate border border-surface-mist">14 days</span>
+              </div>
+            </div>
+            <h3 className="font-semibold text-content-ink mb-1.5 group-hover:text-orange-600 transition-colors">YourHQ Cold Outreach</h3>
+            <p className="text-sm text-content-slate leading-relaxed mb-3">Personalised 4-email flow with open-based branching. Email 1 → condition splits into engaged vs unengaged paths through to close.</p>
+            <span className="text-xs font-medium text-orange-600 group-hover:underline">Open in Flow Builder →</span>
           </Link>
 
           <Link href="/flows/new?template=postpurchase" className="group bg-surface-paper border border-surface-mist rounded-xl p-5 hover:border-green-400 hover:shadow-md transition-all">
