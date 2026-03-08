@@ -557,7 +557,7 @@ export default function ProspectsPage() {
             </div>
           </div>
         </div>
-}
+      )}
 
       {/* Enroll in Flow Modal */}
       {enrollingProspect && (
