@@ -156,7 +156,9 @@ export function parseDaysFromLabel(label: string): number {
   return match ? parseInt(match[1], 10) : 1;
 }
 
-/** Get next send timestamp respecting preferred send days/time */
+const SEND_TIMEZONE = 'Pacific/Auckland';
+
+/** Get next send timestamp respecting preferred send days/time (interpreted in NZT) */
 export function getNextSendAt(
   daysFromNow: number,
   sendDays: string[],
@@ -165,18 +167,36 @@ export function getNextSendAt(
   const [hours, minutes] = sendTime.split(':').map(Number);
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
-  const base = new Date();
-  base.setDate(base.getDate() + daysFromNow);
-  base.setHours(hours, minutes || 0, 0, 0);
+  // Get today's date components in NZ timezone
+  const now = new Date();
+  const nzParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SEND_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const nzYear = parseInt(nzParts.find(p => p.type === 'year')!.value);
+  const nzMonth = parseInt(nzParts.find(p => p.type === 'month')!.value) - 1;
+  const nzDay = parseInt(nzParts.find(p => p.type === 'day')!.value);
 
-  // Advance to next allowed send day if needed
+  // Build a fake "local" Date representing the target NZ date+time,
+  // then find the UTC offset at that moment to get the real UTC time.
+  const localBase = new Date(nzYear, nzMonth, nzDay + daysFromNow, hours, minutes || 0, 0, 0);
+
+  // Advance to next allowed send day if needed (day-of-week in NZ)
   if (sendDays.length > 0) {
     let attempts = 0;
-    while (!sendDays.includes(dayNames[base.getDay()]) && attempts < 7) {
-      base.setDate(base.getDate() + 1);
+    while (!sendDays.includes(dayNames[localBase.getDay()]) && attempts < 7) {
+      localBase.setDate(localBase.getDate() + 1);
       attempts++;
     }
   }
 
-  return base;
+  // Convert NZ local time → UTC using Intl to get the correct offset (handles DST)
+  const localStr = `${localBase.getFullYear()}-${String(localBase.getMonth() + 1).padStart(2, '0')}-${String(localBase.getDate()).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes || 0).padStart(2, '0')}:00`;
+  // Interpret that string as UTC, then measure how far off it is from NZ time
+  const asUtc = new Date(localStr + 'Z');
+  const nzAtUtc = new Date(asUtc.toLocaleString('en-US', { timeZone: SEND_TIMEZONE }));
+  const offsetMs = asUtc.getTime() - nzAtUtc.getTime();
+  return new Date(asUtc.getTime() + offsetMs);
 }
