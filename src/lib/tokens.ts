@@ -5,25 +5,49 @@ type Lead = {
   company?: string;
   role?: string;
   tags?: string;
+  city?: string;
+  reviews?: string;
+  type?: string;
+  phone?: string;
   [key: string]: string | undefined;
 };
 
-/** Replace {{tokens}} in email HTML/text with lead data */
+/** Replace {{tokens}} in email HTML/text with lead/prospect data.
+ *  Handles both camelCase {{firstName}} and spaced {{Company Name}} formats. */
 export function replaceTokens(content: string, lead: Lead): string {
-  const firstName = lead.name ? lead.name.split(' ')[0] : 'Friend';
+  if (!content) return content;
+
+  const firstName = lead.name ? lead.name.split(' ')[0] : '';
   const lastName = lead.name ? lead.name.split(' ').slice(1).join(' ') : '';
 
   return content
+    // Name
     .replace(/\{\{firstName\}\}/gi, firstName)
+    .replace(/\{\{first[ _]name\}\}/gi, firstName)
     .replace(/\{first_name\}/gi, firstName)
     .replace(/\{\{lastName\}\}/gi, lastName)
+    .replace(/\{\{last[ _]name\}\}/gi, lastName)
     .replace(/\{last_name\}/gi, lastName)
-    .replace(/\{\{fullName\}\}/gi, lead.name || 'Friend')
-    .replace(/\{full_name\}/gi, lead.name || 'Friend')
-    .replace(/\{\{company\}\}/gi, lead.company || 'your business')
-    .replace(/\{company\}/gi, lead.company || 'your business')
-    .replace(/\{\{role\}\}/gi, lead.role || 'your role')
-    .replace(/\{role\}/gi, lead.role || 'your role')
+    .replace(/\{\{fullName\}\}/gi, lead.name || '')
+    .replace(/\{\{full[ _]name\}\}/gi, lead.name || '')
+    .replace(/\{full_name\}/gi, lead.name || '')
+    // Company — catches "{{company}}", "{{Company}}", "{{Company Name}}"
+    .replace(/\{\{company[ _]?name\}\}/gi, lead.company || '')
+    .replace(/\{\{company\}\}/gi, lead.company || '')
+    .replace(/\{company\}/gi, lead.company || '')
+    // Role
+    .replace(/\{\{role\}\}/gi, lead.role || '')
+    .replace(/\{role\}/gi, lead.role || '')
+    // Prospect-specific fields
+    .replace(/\{\{city\}\}/gi, lead.city || '')
+    .replace(/\{city\}/gi, lead.city || '')
+    .replace(/\{\{reviews\}\}/gi, lead.reviews || '')
+    .replace(/\{reviews\}/gi, lead.reviews || '')
+    .replace(/\{\{type\}\}/gi, lead.type || '')
+    .replace(/\{type\}/gi, lead.type || '')
+    .replace(/\{\{phone\}\}/gi, lead.phone || '')
+    .replace(/\{phone\}/gi, lead.phone || '')
+    // Email
     .replace(/\{\{email\}\}/gi, lead.email || '')
     .replace(/\{email\}/gi, lead.email || '');
 }

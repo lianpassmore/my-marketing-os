@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Radio, Workflow, Users, UserSearch, Layers, BarChart3, Settings, Zap, BookOpen, LogOut } from 'lucide-react';
+import { LayoutDashboard, Radio, Workflow, Users, UserSearch, Layers, BarChart3, Settings, Zap, BookOpen, LogOut, Newspaper } from 'lucide-react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -45,6 +45,7 @@ export function Sidebar() {
         <nav className="p-4 space-y-1">
           <NavItem href="/" icon={<LayoutDashboard size={18} />} label="Dashboard" />
           <NavItem href="/broadcasts" icon={<Radio size={18} />} label="Broadcasts" />
+          <NavItem href="/newsletter" icon={<Newspaper size={18} />} label="Newsletter" />
           <NavItem href="/flows" icon={<Workflow size={18} />} label="Flows" />
           <NavItem href="/audience" icon={<Users size={18} />} label="Audience" />
           <NavItem href="/prospects" icon={<UserSearch size={18} />} label="Prospects" />

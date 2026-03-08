@@ -63,8 +63,12 @@ create table if not exists broadcasts (
   ab_winner text, -- 'a' or 'b'
   recipient_count integer default 0,
   sent_at timestamptz,
+  scheduled_for timestamptz,
   created_at timestamptz default now()
 );
+
+-- If upgrading an existing database, run:
+-- alter table broadcasts add column if not exists scheduled_for timestamptz;
 
 -- Indexes for performance
 create index if not exists idx_flow_enrollments_next_send on flow_enrollments(next_send_at) where status = 'active';

@@ -79,7 +79,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   for (let i = 0; i < audience.length; i++) {
     const contact = audience[i];
     const isVariantB = hasAB && i >= halfIndex;
-    const subject = isVariantB ? broadcast.ab_subject_b : broadcast.subject;
+    const rawSubject = isVariantB ? broadcast.ab_subject_b : broadcast.subject;
+    const subject = replaceTokens(rawSubject, contact);
 
     // Create email event record
     const eventInsert = isProspectBroadcast
