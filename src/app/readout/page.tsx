@@ -29,6 +29,7 @@ type FlowStat = {
   opened: number;
   clicked: number;
   bounced: number;
+  unsubscribed: number;
 };
 
 type Broadcast = {
