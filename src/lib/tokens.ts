@@ -122,7 +122,7 @@ export function appendColdOutreachFooter(html: string, optOutUrl: string): strin
   const footer = `
 <div style="margin-top:40px;padding-top:24px;border-top:1px solid #E2E8F0;text-align:center;font-family:sans-serif;">
   <p style="font-size:12px;color:#94A3B8;line-height:1.6;margin:0 0 8px;">
-    You're receiving this as part of a business outreach. This is not a marketing list.
+    You're receiving this as a prospective partner of YourHQ. We reached out because we think there's a fit.
   </p>
   <p style="font-size:12px;color:#94A3B8;margin:0;">
     <a href="${optOutUrl}" style="color:#94A3B8;text-decoration:underline;">Don't want to hear from us? Click here.</a>
