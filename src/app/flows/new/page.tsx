@@ -246,6 +246,33 @@ function EmailDetailPanel({ node, onUpdate, onClose }: {
             </button>
           </div>
 
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {[
+              { label: 'yourhq.co.nz', url: 'https://yourhq.co.nz' },
+              { label: 'yourhq.co.nz/pricing', url: 'https://yourhq.co.nz/pricing' },
+              { label: 'yourhq.co.nz/demo', url: 'https://yourhq.co.nz/demo' },
+            ].map(({ label, url }) => (
+              <button
+                key={url}
+                type="button"
+                onClick={() => {
+                  const ta = bodyRef.current;
+                  if (!ta) return;
+                  const tag = `<a href="${url}">${label}</a>`;
+                  const start = ta.selectionStart;
+                  const end = ta.selectionEnd;
+                  const newBody = body.slice(0, start) + tag + body.slice(end);
+                  setBody(newBody);
+                  emit(subject, preview, newBody);
+                  setTimeout(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = start + tag.length; }, 0);
+                }}
+                className="text-xs px-2 py-0.5 rounded border border-surface-mist bg-surface-cloud text-content-slate hover:border-brand-storm hover:text-brand-storm transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {showLinkPopover && (
             <div className="mb-2 bg-white border border-surface-mist rounded-lg p-3 shadow-md space-y-2">
               <p className="text-xs font-semibold text-content-ink">Insert Link</p>

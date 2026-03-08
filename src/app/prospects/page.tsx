@@ -135,15 +135,39 @@ function AddProspectModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
 type CsvRow = Record<string, string>;
 
 function parseCSV(text: string): CsvRow[] {
+  // Proper quoted-field parser — handles commas inside quoted fields
+  const parseRow = (line: string): string[] => {
+    const fields: string[] = [];
+    let field = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') { field += '"'; i++; }
+        else if (ch === '"') { inQ = false; }
+        else { field += ch; }
+      } else {
+        if (ch === '"') { inQ = true; }
+        else if (ch === ',') { fields.push(field); field = ''; }
+        else { field += ch; }
+      }
+    }
+    fields.push(field);
+    return fields.map(f => f.trim());
+  };
+
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-    const row: CsvRow = {};
-    headers.forEach((h, i) => { row[h] = values[i] ?? ''; });
-    return row;
-  }).filter(row => row['email']);
+  const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/['"]/g, ''));
+  return lines.slice(1)
+    .filter(line => line.trim())
+    .map(line => {
+      const values = parseRow(line);
+      const row: CsvRow = {};
+      headers.forEach((h, i) => { row[h] = values[i] ?? ''; });
+      return row;
+    })
+    .filter(row => row['email']);
 }
 
 function ImportCSVModal({ onClose, onSaved }: { onClose: () => void; onSaved: (ps: Prospect[]) => void }) {
