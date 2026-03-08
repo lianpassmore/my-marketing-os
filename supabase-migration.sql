@@ -35,6 +35,7 @@ create table if not exists email_events (
   id uuid default gen_random_uuid() primary key,
   resend_email_id text,
   lead_id uuid references leads(id),
+  prospect_id uuid references prospects(id),
   flow_id uuid references flows(id),
   broadcast_id uuid,
   step_index integer,
@@ -44,6 +45,9 @@ create table if not exists email_events (
   metadata jsonb default '{}',
   created_at timestamptz default now()
 );
+
+-- Run this if upgrading an existing database that lacks prospect_id on email_events:
+-- alter table email_events add column if not exists prospect_id uuid references prospects(id);
 
 -- Broadcasts (one-off email sends)
 create table if not exists broadcasts (

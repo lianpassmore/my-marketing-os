@@ -76,6 +76,16 @@ export function injectOpenPixel(html: string, leadId: string, emailEventId: stri
   return html + pixel;
 }
 
+/** Same as injectOpenPixel but uses pid= for prospect emails */
+export function injectProspectOpenPixel(html: string, prospectId: string, emailEventId: string, baseUrl: string): string {
+  const pixelUrl = `${baseUrl}/api/track?eid=${emailEventId}&pid=${prospectId}`;
+  const pixel = `<img src="${pixelUrl}" width="1" height="1" style="display:none;" alt="" />`;
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${pixel}</body>`);
+  }
+  return html + pixel;
+}
+
 /** Append a CAN-SPAM/GDPR compliant unsubscribe footer to email HTML */
 export function appendUnsubscribeFooter(html: string, unsubscribeUrl: string): string {
   const footer = `

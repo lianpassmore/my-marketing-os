@@ -9,10 +9,14 @@ type Prospect = {
   name?: string;
   company?: string;
   role?: string;
+  type?: string;
+  phone?: string;
+  city?: string;
   website?: string;
   source?: string;
   notes?: string;
   tags?: string;
+  reviews?: string;
   status: 'not_contacted' | 'contacted' | 'replied' | 'converted' | 'do_not_contact';
   created_at: string;
   last_contacted_at?: string;
@@ -40,7 +44,9 @@ const STATUS_LABELS: Record<string, string> = {
 // ─── Add Prospect Modal ──────────────────────────────────────────────────────
 
 function AddProspectModal({ onClose, onSaved }: { onClose: () => void; onSaved: (p: Prospect) => void }) {
-  const [form, setForm] = useState({ name: '', email: '', company: '', role: '', website: '', source: '', notes: '', tags: '' });
+  const [form, setForm] = useState({
+    email: '', company: '', source: '', type: '', tags: '', notes: '', phone: '', city: '', reviews: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -60,50 +66,51 @@ function AddProspectModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     const json = await res.json();
     setIsSubmitting(false);
 
-    if (!json.success) {
-      setError(json.error || 'Something went wrong.');
-      return;
-    }
+    if (!json.success) { setError(json.error || 'Something went wrong.'); return; }
     onSaved(json.data as Prospect);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-mist">
           <h2 className="text-base font-semibold text-content-ink">Add Prospect</h2>
           <button onClick={onClose} className="text-content-slate hover:text-content-ink"><X size={18} /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Email *</label>
-              <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@acme.com" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="info@acme.com" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
             </div>
             <div>
-              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Name</label>
-              <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Jane Smith" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Company</label>
+              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Company Name</label>
               <input value={form.company} onChange={e => set('company', e.target.value)} placeholder="Acme Corp" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
             </div>
             <div>
-              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Role</label>
-              <input value={form.role} onChange={e => set('role', e.target.value)} placeholder="Head of Marketing" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
-            </div>
-            <div>
               <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Source</label>
-              <input value={form.source} onChange={e => set('source', e.target.value)} placeholder="LinkedIn, Company site…" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+              <input value={form.source} onChange={e => set('source', e.target.value)} placeholder="Google Maps, LinkedIn…" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
             </div>
             <div>
-              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Website</label>
-              <input value={form.website} onChange={e => set('website', e.target.value)} placeholder="https://acme.com" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Type</label>
+              <input value={form.type} onChange={e => set('type', e.target.value)} placeholder="Restaurant, Agency, SaaS…" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Phone</label>
+              <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+64 9 000 0000" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">City</label>
+              <input value={form.city} onChange={e => set('city', e.target.value)} placeholder="Auckland" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Reviews</label>
+              <input value={form.reviews} onChange={e => set('reviews', e.target.value)} placeholder="4.8 ★ (120)" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Tags (comma-separated)</label>
-            <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="SaaS, NZ, Q2" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
+            <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Tag</label>
+            <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="Q2, NZ, Hot" className="w-full border border-surface-mist rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-storm" />
           </div>
           <div>
             <label className="text-xs font-medium text-content-slate uppercase tracking-wider mb-1 block">Notes</label>
@@ -174,13 +181,14 @@ function ImportCSVModal({ onClose, onSaved }: { onClose: () => void; onSaved: (p
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: r['email'],
-          name: r['name'] || r['full name'] || null,
-          company: r['company'] || null,
-          role: r['role'] || r['job title'] || null,
+          company: r['company name'] || r['company'] || null,
           source: r['source'] || 'CSV Import',
-          website: r['website'] || null,
-          tags: r['tags'] || null,
+          type: r['type'] || null,
+          tags: r['tag'] || r['tags'] || null,
           notes: r['notes'] || null,
+          phone: r['phone'] || null,
+          city: r['city'] || null,
+          reviews: r['reviews'] || null,
         }),
       });
       const json = await res.json();
@@ -193,7 +201,7 @@ function ImportCSVModal({ onClose, onSaved }: { onClose: () => void; onSaved: (p
     if (saved.length > 0) onSaved(saved);
   };
 
-  const previewHeaders = rows.length ? Object.keys(rows[0]).slice(0, 5) : [];
+  const previewHeaders = rows.length ? Object.keys(rows[0]).slice(0, 6) : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
@@ -214,7 +222,9 @@ function ImportCSVModal({ onClose, onSaved }: { onClose: () => void; onSaved: (p
             <div className="border-2 border-dashed border-surface-mist rounded-xl p-12 text-center cursor-pointer hover:border-brand-storm transition-colors" onClick={() => fileRef.current?.click()}>
               <Upload className="mx-auto text-content-slate mb-3" size={28} />
               <p className="text-sm font-medium text-content-ink">Click to upload a CSV file</p>
-              <p className="text-xs text-content-slate mt-1">Expects columns: email, name, company, role, source, website, tags, notes</p>
+              <p className="text-xs text-content-slate mt-1">
+                Columns: <span className="font-medium">email</span>, company name, source, type, tag, notes, phone, city, reviews
+              </p>
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFile} />
             </div>
           ) : (
@@ -230,7 +240,7 @@ function ImportCSVModal({ onClose, onSaved }: { onClose: () => void; onSaved: (p
                   </thead>
                   <tbody className="divide-y divide-surface-mist">
                     {rows.slice(0, 5).map((row, i) => (
-                      <tr key={i}>{previewHeaders.map(h => <td key={h} className="px-3 py-2 text-content-ink truncate max-w-[140px]">{row[h]}</td>)}</tr>
+                      <tr key={i}>{previewHeaders.map(h => <td key={h} className="px-3 py-2 text-content-ink truncate max-w-[120px]">{row[h]}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
@@ -320,13 +330,13 @@ export default function ProspectsPage() {
 
   const displayed = prospects.filter(p => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q || [p.email, p.name, p.company, p.tags].some(v => v?.toLowerCase().includes(q));
+    const matchesSearch = !q || [p.email, p.name, p.company, p.city, p.type, p.tags].some(v => v?.toLowerCase().includes(q));
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   return (
-    <main className="p-8 max-w-6xl mx-auto w-full">
+    <main className="p-8 max-w-7xl mx-auto w-full">
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-content-ink">Prospects</h1>
@@ -354,7 +364,7 @@ export default function ProspectsPage() {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={16} className="text-content-slate" />
           </div>
-          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2.5 border border-surface-mist rounded-lg focus:border-brand-storm sm:text-sm bg-surface-paper outline-none" placeholder="Search by email, name, company…" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2.5 border border-surface-mist rounded-lg focus:border-brand-storm sm:text-sm bg-surface-paper outline-none" placeholder="Search by email, name, company, city, type…" />
         </div>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border border-surface-mist rounded-lg px-3 py-2.5 text-sm bg-surface-paper outline-none focus:border-brand-storm text-content-ink">
           <option value="all">All statuses</option>
@@ -368,52 +378,47 @@ export default function ProspectsPage() {
           <table className="w-full text-left">
             <thead className="bg-surface-cloud border-b border-surface-mist text-content-slate text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-4 font-medium">Contact</th>
-                <th className="px-6 py-4 font-medium">Company / Role</th>
-                <th className="px-6 py-4 font-medium">Source</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Added</th>
-                <th className="px-6 py-4 font-medium"></th>
+                <th className="px-4 py-4 font-medium">Email</th>
+                <th className="px-4 py-4 font-medium">Company Name</th>
+                <th className="px-4 py-4 font-medium">Source</th>
+                <th className="px-4 py-4 font-medium">Type</th>
+                <th className="px-4 py-4 font-medium">Tag</th>
+                <th className="px-4 py-4 font-medium">Notes</th>
+                <th className="px-4 py-4 font-medium">Phone</th>
+                <th className="px-4 py-4 font-medium">City</th>
+                <th className="px-4 py-4 font-medium">Reviews</th>
+                <th className="px-4 py-4 font-medium">Status</th>
+                <th className="px-4 py-4 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-mist text-sm">
               {isLoading ? (
-                <tr><td colSpan={6} className="px-6 py-12 text-center"><Loader2 className="animate-spin mx-auto text-content-slate" size={24} /></td></tr>
+                <tr><td colSpan={9} className="px-4 py-12 text-center"><Loader2 className="animate-spin mx-auto text-content-slate" size={24} /></td></tr>
               ) : displayed.length > 0 ? displayed.map(prospect => (
                 <tr key={prospect.id} className="hover:bg-surface-cloud transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-content-ink">{prospect.name || <span className="text-content-slate italic">No name</span>}</div>
-                    <div className="text-content-slate mt-0.5">{prospect.email}</div>
-                    {prospect.tags && (
-                      <div className="flex flex-wrap gap-1 mt-1">
+                  <td className="px-4 py-4 text-content-ink text-sm">{prospect.email}</td>
+                  <td className="px-4 py-4 text-content-ink text-sm">{prospect.company || <span className="text-content-slate">—</span>}</td>
+                  <td className="px-4 py-4 text-content-slate text-sm">{prospect.source || '—'}</td>
+                  <td className="px-4 py-4 text-content-slate text-sm">{prospect.type || '—'}</td>
+                  <td className="px-4 py-4">
+                    {prospect.tags ? (
+                      <div className="flex flex-wrap gap-1">
                         {prospect.tags.split(',').map(t => (
                           <span key={t.trim()} className="px-1.5 py-0.5 rounded text-xs bg-surface-cloud border border-surface-mist text-content-slate">{t.trim()}</span>
                         ))}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {prospect.company || prospect.role ? (
-                      <>
-                        {prospect.company && <div className="text-content-ink">{prospect.company}</div>}
-                        {prospect.role && <div className="text-content-slate text-xs mt-0.5">{prospect.role}</div>}
-                      </>
                     ) : <span className="text-content-slate">—</span>}
                   </td>
-                  <td className="px-6 py-4">
-                    {prospect.source
-                      ? <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-surface-cloud border border-surface-mist text-content-slate">{prospect.source}</span>
-                      : <span className="text-content-slate">—</span>}
-                  </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 text-content-slate text-sm max-w-40 truncate" title={prospect.notes || ''}>{prospect.notes || '—'}</td>
+                  <td className="px-4 py-4 text-content-slate text-sm">{prospect.phone || '—'}</td>
+                  <td className="px-4 py-4 text-content-slate text-sm">{prospect.city || '—'}</td>
+                  <td className="px-4 py-4 text-content-slate text-sm">{prospect.reviews || '—'}</td>
+                  <td className="px-4 py-4">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${STATUS_STYLES[prospect.status]}`}>
                       {STATUS_LABELS[prospect.status]}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-content-slate">
-                    {new Date(prospect.created_at).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     {prospect.status !== 'converted' && prospect.status !== 'do_not_contact' && (
                       <div className="flex items-center gap-3">
                         {flows.length > 0 && (
@@ -436,16 +441,14 @@ export default function ProspectsPage() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={9} className="px-4 py-12 text-center">
                     <div className="w-12 h-12 bg-surface-cloud rounded-full flex items-center justify-center mx-auto mb-4">
                       <UserPlus className="text-content-slate" size={24} />
                     </div>
                     <h3 className="text-sm font-medium text-content-ink">
                       {searchQuery || statusFilter !== 'all' ? 'No prospects match your filters' : 'No prospects yet'}
                     </h3>
-                    <p className="text-sm text-content-slate mt-1">
-                      Import a CSV or add prospects manually to start cold outreach.
-                    </p>
+                    <p className="text-sm text-content-slate mt-1">Import a CSV or add prospects manually to start cold outreach.</p>
                   </td>
                 </tr>
               )}

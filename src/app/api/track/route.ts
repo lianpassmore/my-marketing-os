@@ -14,11 +14,29 @@ export async function GET(request: NextRequest) {
   const prospectId = searchParams.get('pid');
   const url = searchParams.get('url');
 
+  // Look up the original sent event to copy flow/step context
+  let flowContext: { flow_id?: string; step_index?: number; broadcast_id?: string } = {};
+  if (emailEventId) {
+    const { data: sentEvent } = await supabase
+      .from('email_events')
+      .select('flow_id, step_index, broadcast_id')
+      .eq('id', emailEventId)
+      .maybeSingle();
+    if (sentEvent) {
+      flowContext = {
+        flow_id: sentEvent.flow_id ?? undefined,
+        step_index: sentEvent.step_index ?? undefined,
+        broadcast_id: sentEvent.broadcast_id ?? undefined,
+      };
+    }
+  }
+
   // Open tracking pixel (no url param)
   if (!url) {
     if (emailEventId && (leadId || prospectId)) {
       void supabase.from('email_events').insert([{
         ...(leadId ? { lead_id: leadId } : { prospect_id: prospectId }),
+        ...flowContext,
         event_type: 'opened',
         metadata: { source_event_id: emailEventId },
       }]);
@@ -35,6 +53,7 @@ export async function GET(request: NextRequest) {
   if (emailEventId && (leadId || prospectId)) {
     void supabase.from('email_events').insert([{
       ...(leadId ? { lead_id: leadId } : { prospect_id: prospectId }),
+      ...flowContext,
       event_type: 'clicked',
       url_clicked: url,
       metadata: { source_event_id: emailEventId },

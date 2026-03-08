@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { supabase } from '@/lib/supabase';
-import { replaceTokens, injectLinkTracking, injectProspectLinkTracking, injectOpenPixel, replaceOptInToken, htmlToPlainText, getNextSendAt, parseDaysFromLabel, appendUnsubscribeFooter, appendColdOutreachFooter, wrapInEmailTemplate } from '@/lib/tokens';
+import { replaceTokens, injectLinkTracking, injectProspectLinkTracking, injectOpenPixel, injectProspectOpenPixel, replaceOptInToken, htmlToPlainText, getNextSendAt, parseDaysFromLabel, appendUnsubscribeFooter, appendColdOutreachFooter, wrapInEmailTemplate } from '@/lib/tokens';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -167,6 +167,7 @@ async function processEnrollment(enrollment: FlowEnrollment) {
     if (isProspect) {
       bodyHtml = replaceOptInToken(bodyHtml, contact.id, BASE_URL);
       bodyHtml = injectProspectLinkTracking(bodyHtml, contact.id, emailEventId, BASE_URL);
+      bodyHtml = injectProspectOpenPixel(bodyHtml, contact.id, emailEventId, BASE_URL);
       bodyHtml = appendColdOutreachFooter(bodyHtml, `${BASE_URL}/api/unsubscribe?pid=${contact.id}`);
     } else {
       bodyHtml = injectLinkTracking(bodyHtml, contact.id, emailEventId, BASE_URL);
